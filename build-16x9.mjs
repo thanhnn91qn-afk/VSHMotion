@@ -10,8 +10,9 @@ import { ART_ENGINE, ART_CSS, IDLE_ENGINE, IDLE_WORD, IDLE_LINE, artBox, pickArt
 import { assertScenes } from "./scene-check.mjs";
 import { resolveOutDir, outBaseName } from "./out-dir.mjs";
 import { assemble } from "./assemble.mjs";
+import { phraseCues } from "./wordsync.mjs";
 import { direct, chooseMood } from "./director.mjs";
-import { gsapTag, GSAP_BRIDGE, WORD_FX, LINE_FX, MARK_CSS, markWords, styleChart, styleStat } from "./motion.mjs";
+import { gsapTag, fontTags, GSAP_BRIDGE, WORD_FX, LINE_FX, MARK_CSS, markWords, styleChart, styleStat } from "./motion.mjs";
 
 const exec = promisify(execFile);
 const ROOT = dirname(fileURLToPath(import.meta.url));
@@ -126,7 +127,7 @@ ${WORD_FX}${IDLE_WORD}    }
   if (lines.length) {
     const start = cfg.lineStartMs || 1000, step = cfg.lineMs || 1300;
     for (let i = 0; i < lines.length; i++) {
-      const s = start + i * step;
+      const s = (cfg.lineCues && cfg.lineCues[i] != null) ? cfg.lineCues[i] : start + i * step;
       const p = easeOutCubic(prog(tMs, s, s + 440));
       lines[i].style.opacity = String(p);
       lines[i].style.transform = "translateX(" + ((1 - p) * -30) + "px)";
@@ -171,7 +172,7 @@ function parseStat(stat) {
 const BASE = `
  html,body{margin:0;padding:0;background:#fff}
  body{width:${W}px;height:${H}px;position:relative;overflow:hidden;
-   font-family:"Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
+   font-family:"Be Vietnam Pro","Segoe UI",Arial,sans-serif;-webkit-font-smoothing:antialiased}
  .full{position:absolute;inset:0;overflow:hidden}
  .full img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
  .logobar{position:absolute;right:56px;bottom:40px;display:flex;align-items:center}
@@ -179,7 +180,7 @@ const BASE = `
 ${ART_CSS}${MARK_CSS}`;
 
 function shell(css, body, cfg, js = "") {
-  return `<!doctype html><html lang="vi"><head><meta charset="utf-8">${gsapTag(ROOT)}<style>${BASE}${css}</style></head>
+  return `<!doctype html><html lang="vi"><head><meta charset="utf-8">${fontTags(ROOT)}${gsapTag(ROOT)}<style>${BASE}${css}</style></head>
 <body>${body}<script>window.__CFG=${JSON.stringify(cfg)};${ENGINE}${js}</script></body></html>`;
 }
 
@@ -633,6 +634,13 @@ async function main() {
       const n = await durationSec(wav);
       clipDur = n + GAP_SEC;
       console.log(`${n.toFixed(2)}s`);
+      // list lines and chart bars land on the words that name them
+      const items = (s.chart || []).length ? s.chart.map((c) => c.label) : (s.lines || []);
+      if (items.length && s.style !== "logo") {
+        s.__cues = await phraseCues(exec, wav, s.voice, items, n);
+        if (s.__cues) console.log(`[dong bo] ${s.id}: ` +
+          s.__cues.map((c) => (c === null ? "-" : (c / 1000).toFixed(2) + "s")).join(", "));
+      }
     }
     const parsed = parseStat(s.stat);
     const nLines = (s.lines || []).length;
@@ -646,6 +654,7 @@ async function main() {
         statSuffix: parsed ? parsed.suffix : "",
         statGrouped: parsed ? parsed.grouped : false,
         wordMs: s.wordMs || 190,
+        lineCues: s.__cues || null,
         lineStartMs: s.lineStartMs || 1000,
         // spread the lines across the narration so each lands with its sentence
         lineMs: s.lineMs || (nLines ? Math.max(900, (clipDur * 1000 - 2200) / nLines) : 1300),
@@ -705,7 +714,9 @@ async function main() {
         ff.on("error", rej);
       });
       for (let i = 0; i < frames; i++) {
-        await page.evaluate((t) => window.__frame(t), (i / FPS) * 1000);
+        // preroll: the opening scene starts part-way into its own reveal, so frame 0
+        // - the thumbnail a muted autoplay shows - is a real picture, not an empty ground
+        await page.evaluate((t) => window.__frame(t), (i / FPS) * 1000 + (s.preroll || 0));
         const buf = await page.screenshot({ type: "jpeg", quality: 92 });
         if (!ff.stdin.write(buf)) await new Promise((r) => ff.stdin.once("drain", r));
       }
@@ -720,15 +731,17 @@ async function main() {
   if (STILLS) { console.log(`\nStills in ${dirs.stills}`); return; }
 
   console.log(NO_TRANS ? "[video] noi canh (khong chuyen canh)" : "[video] noi canh co chuyen canh");
-  const { silent, withAudio, joins, cues } = await assemble({
+  const { silent, withAudio, joins, cues, loud } = await assemble({
     scenes, fps: FPS, gap: GAP_SEC, exec, root: ROOT, name,
     outDir: dirs.out, base: outBaseName(cfg, name), off: NO_TRANS,
     music: await musicPath(cfg), musicVol: Number(cfg.brand?.musicVolume ?? 0.16),
     sfxOff: process.argv.includes("--no-sfx") || cfg.brand?.sfx === false,
     sfxVol: Number(cfg.brand?.sfxVolume ?? 1),
+    lufs: Number(cfg.brand?.loudness ?? -14),
   });
   if (joins.length) console.log(`[video] ${joins.length} lan chuyen canh: ${joins.join(", ")}`);
   if (cues.length) console.log(`[am thanh] ${cues.length} tieng hieu ung: ${cues.join(", ")}`);
+  console.log(`[am thanh] do to ${loud.before.toFixed(1)} -> ${loud.target} LUFS`);
 
   console.log(`\n=== Done ===\nWith audio : ${withAudio}\nSilent     : ${silent}`);
   console.log(`Total: ${(await durationSec(withAudio)).toFixed(2)}s (${scenes.length} scenes, ${W}x${H})`);

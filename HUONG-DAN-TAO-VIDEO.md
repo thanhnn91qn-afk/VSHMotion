@@ -409,6 +409,22 @@ Chuyển thể từ `per-word-rise` và `marker-highlight` của HyperFrames:
   chuyển sang màu đậm như mực. So khớp **cả cụm**, không so từng từ lẻ — so từ lẻ thì
   mọi chữ "không" khác trong câu cũng bị tô theo.
 - Tốc độ chữ chạy tự nén lại khi cảnh ngắn, để chữ cuối hiện kịp trước khi chuyển cảnh.
+- **Font Be Vietnam Pro** (giấy phép OFL, cài qua `@fontsource/be-vietnam-pro`) — vẽ cho
+  tiếng Việt nên dấu không dính dòng trên. Máy thiếu gói thì tự lùi về Segoe UI.
+
+### Dòng chữ hiện đúng lúc lời đọc nhắc tới (`wordsync.mjs`)
+
+Danh sách và cột biểu đồ không còn hiện cách đều nhau, mà hiện **ngay đầu cụm câu nhắc
+tới nó**. Máy đọc không trả mốc thời gian từng từ, nên làm thế này: `silencedetect` tách
+bản ghi thành các đoạn nói; lời đọc tách thành cụm theo dấu câu; khớp hai bên, rồi tìm
+mỗi dòng trên màn hình ứng với cụm nào (từ hiếm nặng ký hơn từ lặp lại). Dòng nào lời
+đọc không nhắc thì chen vào giữa hai dòng kề, không bao giờ đảo thứ tự. Log dựng in ra
+`[dong bo] e03: 5.39s, 6.34s, 7.29s` để soát.
+
+### Khung đầu tiên không trống
+
+Cảnh 1 bắt đầu ở mốc 0,9 giây của hiệu ứng (`"preroll": 900`), nên ảnh đại diện trên
+Zalo/Facebook — vốn lấy khung số 0 — đã có tiêu đề và ảnh. Ghi `"preroll": 0` để tắt.
 
 ---
 
@@ -456,7 +472,8 @@ glitch, lỗi, bass dội trong bộ gốc bị bỏ vì không hợp nội dung
 Bộ đạo diễn gắn theo cách vào cảnh: ảnh lướt sang → `whoosh-short`; poster mở ra →
 `sparkle`; biểu đồ, con số → `ping`; cảnh kết → `chime`. **Các lần chuyển còn lại cố ý
 để im** — tiếng ở mọi lần chuyển biến bài tuyên truyền sức khỏe thành trailer phim.
-Không bao giờ hai cảnh liền nhau cùng một tiếng. Ghi tay: `"sfx": "pop"` hoặc `"none"`.
+Không bao giờ hai cảnh liền nhau cùng một tiếng, và **một tiếng chỉ lặp lại sau ít nhất
+22,5 giây** (tiếng thứ hai trong khoảng đó bị bỏ). Ghi tay: `"sfx": "pop"` hoặc `"none"`.
 
 Mọi tiếng đã được cân về cùng mức, thấp hơn giọng đọc khoảng 9 dB, và đặt sao cho đỉnh
 tiếng rơi đúng **đầu** lần chuyển cảnh — khoảng lặng giữa hai câu. Đặt vào giữa lần chuyển
@@ -473,6 +490,12 @@ mỗi khi có tiếng** (đo được ~14 dB khi đang đọc) rồi nhích lên
 | Nhạc | `--no-music`, hoặc `"brand": { "music": "none" }` |
 | Tiếng hiệu ứng | `--no-sfx`, hoặc `"brand": { "sfx": false }` |
 | Âm lượng | `"brand": { "musicVolume": 0.16, "sfxVolume": 1 }` |
+
+### Chuẩn độ to −14 LUFS
+
+Bản cuối được đo rồi chỉnh hai lượt bằng `loudnorm` về **−14 LUFS, đỉnh −1,5 dBTP** — mức
+YouTube, Facebook, Zalo dùng. Trước đây clip ra khoảng −16,6 LUFS, nghe nhỏ hơn clip khác
+khi phát liền nhau. Log in `[am thanh] do to X -> -14 LUFS`. Đổi mức: `"brand": { "loudness": -16 }`.
 
 Bản không tiếng (`-silent.mp4`) không có cả lời, nhạc lẫn tiếng hiệu ứng.
 

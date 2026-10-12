@@ -85,7 +85,9 @@ export function styleChart(s, ctx) {
   const step = Math.min(2.2, Math.max(0.45, (dur - 2.8) / Math.max(1, D.n)));
   const tl = gsap.timeline({ paused: true });
   document.querySelectorAll("#chart .row").forEach(function(row, i){
-    const at = start + i * step;
+    // on the word that names the bar, when the narration was matched
+    const cue = window.__CFG.lineCues && window.__CFG.lineCues[i];
+    const at = cue != null ? cue / 1000 : start + i * step;
     const fill = row.querySelector(".fill"), val = row.querySelector(".val");
     const st = { v: 0 };
     const target = Number(val.dataset.v);
@@ -233,3 +235,14 @@ export function markWords(text, highlight, esc) {
       : `<span class="w">${w}</span>`))
     .join("");
 }
+
+/**
+ * Be Vietnam Pro (OFL-1.1, @fontsource/be-vietnam-pro) - a sans drawn for
+ * Vietnamese, so stacked diacritics sit properly instead of colliding the way
+ * they do in fonts that bolt them on. Loaded from disk, so renders stay offline.
+ * The builders wait on document.fonts.ready before the first frame.
+ */
+export const fontTags = (root) =>
+  [400, 500, 600, 700, 800, 900]
+    .map((w) => `<link rel="stylesheet" href="${pathToFileURL(join(root, "node_modules", "@fontsource", "be-vietnam-pro", `${w}.css`)).href}">`)
+    .join("");

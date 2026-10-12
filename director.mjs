@@ -140,6 +140,11 @@ export function direct(cfg, { portrait }) {
     if (notes.length) log.push(`${s.id}: ${notes.join(", ")}`);
   });
 
+  // Frame 0 is the thumbnail when a feed autoplays the clip muted. Starting the
+  // opening scene 0.9 s into its own reveal means that frame already shows the
+  // title and picture instead of an empty background.
+  if (scenes[0] && scenes[0].preroll === undefined) scenes[0].preroll = 900;
+
   // second pass: transitions need both neighbours' final styles
   let prevTrans = null;
   scenes.forEach((s, i) => {

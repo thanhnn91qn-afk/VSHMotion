@@ -47,7 +47,7 @@ function transitionInto(scenes, i, off) {
 }
 
 export async function assemble({ scenes, fps, gap, exec, root, name, outDir, base, transDur = 0.4, off = false,
-                                 music = null, musicVol = 0.16, sfxOff = false, sfxVol = 1 }) {
+                                 music = null, musicVol = 0.16, sfxOff = false, sfxVol = 1, lufs = -14 }) {
   // Clip length as rendered (whole frames), not the float the renderer aimed for,
   // or the offsets drift by a fraction of a frame per join.
   const len = scenes.map((s) => s.frames / fps);
@@ -152,12 +152,16 @@ export async function assemble({ scenes, fps, gap, exec, root, name, outDir, bas
   } else {
     f.push(`${bus}anull[aout]`);
   }
+  // Mix to a wav first, then master it: every clip leaves at the same loudness
+  // instead of wherever its narration happened to land (one measured -16.6 LUFS).
+  const mixWav = join(root, "build", `mix-${name}.wav`);
   await exec("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error", ...inArgs,
-    "-filter_complex", f.join(";"), "-map", "0:v:0", "-map", "[aout]",
-    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-t", total.toFixed(3),
-    "-movflags", "+faststart", withAudio], { maxBuffer: 1 << 24 });
+    "-filter_complex", f.join(";"), "-map", "[aout]", "-t", total.toFixed(3),
+    "-c:a", "pcm_s16le", mixWav], { maxBuffer: 1 << 24 });
+  const loud = await master(exec, mixWav, silent, withAudio, lufs);
 
-  return { silent, withAudio, joins: joins.filter(Boolean), cues: cues.map((c) => `${c.name}@${c.at.toFixed(2)}s`) };
+  return { silent, withAudio, joins: joins.filter(Boolean), loud,
+    cues: cues.map((c) => `${c.name}@${c.at.toFixed(2)}s`) };
 }
 
 /**
@@ -166,16 +170,24 @@ export async function assemble({ scenes, fps, gap, exec, root, name, outDir, bas
  * The sound is placed so its loudest moment lands where the transition (or
  * the cut) begins - the silent gap between two lines of narration.
  */
+const SFX_MIN_GAP = 22.5;   // seconds between two plays of the same sound
+
 async function sfxCues(scenes, joins, starts, d, root, vol) {
   const libPath = join(root, "assets", "sfx", "sfx.json");
   if (!existsSync(libPath)) return [];
   const lib = JSON.parse(await readFile(libPath, "utf8"));
   const volDb = 20 * Math.log10(Math.max(1e-4, vol));
   const out = [];
+  const lastAt = {};
   scenes.forEach((s, i) => {
     if (i === 0 || !s.sfx || s.sfx === "none" || s.sfx === "auto") return;
     const e = lib[s.sfx];
     if (!e) return;
+    // One sound more than twice in 45 s turns into a tic (a clip once had the
+    // same whoosh five times in 89 s), so a repeat closer than 22.5 s is dropped.
+    // Silence is a cue too.
+    if (lastAt[s.sfx] !== undefined && starts[i] - lastAt[s.sfx] < SFX_MIN_GAP) return;
+    lastAt[s.sfx] = starts[i];
     // The peak lands where the transition begins, not at its middle: that is
     // the quiet moment between two lines. The next scene's narration starts
     // about 70 ms in, and a sound peaking mid-transition sat on its first word.
@@ -184,4 +196,26 @@ async function sfxCues(scenes, joins, starts, d, root, vol) {
       at: Math.max(0, hit - e.peak), gainDb: e.gainDb + volDb });
   });
   return out;
+}
+
+/**
+ * Two-pass loudness mastering (EBU R128 via ffmpeg loudnorm): measure the mix,
+ * then apply one linear gain to reach the target - the same level every
+ * platform normalises to (-14 LUFS), true peak kept under -1.5 dBFS for the AAC
+ * encode. Linear mode keeps the mix's own dynamics; ffmpeg only falls back to
+ * compression if the target is unreachable without clipping.
+ */
+async function master(exec, mixWav, silent, out, lufs) {
+  const target = `I=${lufs}:TP=-1.5:LRA=11`;
+  const { stderr } = await exec("ffmpeg", ["-hide_banner", "-i", mixWav,
+    "-af", `loudnorm=${target}:print_format=json`, "-f", "null", "-"], { maxBuffer: 1 << 24 });
+  const m = JSON.parse(stderr.slice(stderr.lastIndexOf("{"), stderr.lastIndexOf("}") + 1));
+  const measured = `measured_I=${m.input_i}:measured_TP=${m.input_tp}:measured_LRA=${m.input_lra}` +
+    `:measured_thresh=${m.input_thresh}:offset=${m.target_offset}:linear=true`;
+  await exec("ffmpeg", ["-y", "-hide_banner", "-loglevel", "error",
+    "-i", silent, "-i", mixWav, "-map", "0:v:0", "-map", "1:a:0",
+    "-af", `loudnorm=${target}:${measured},aresample=44100`,
+    "-c:v", "copy", "-c:a", "aac", "-b:a", "192k", "-shortest",
+    "-movflags", "+faststart", out], { maxBuffer: 1 << 24 });
+  return { before: Number(m.input_i), target: lufs };
 }
