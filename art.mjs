@@ -672,6 +672,14 @@ export const IDLE_ENGINE = `
       artSvg.style.transform = "translateY(" + (Math.sin(it * 0.55) * 10).toFixed(2) + "px)"
                              + " scale(" + (1 + 0.012 * Math.sin(it * 0.42)).toFixed(4) + ")";
     }
+    // A poster shown whole and the closing emblem have no photo for Ken Burns
+    // and no decoration, so they sat pixel-still for 4-6 s (look.py measured it).
+    // A slow push on their wrappers, which no reveal owns, keeps the frame alive.
+    const dur = (window.__CFG && window.__CFG.clipDurMs) || 6000;
+    const push = Math.min(1, tMs / dur);
+    for (const w of document.querySelectorAll(".fwrap, .hero")) {
+      w.style.transform = "scale(" + (1 + 0.045 * push).toFixed(4) + ")";
+    }
     // Gradient grounds pan slowly; the style opts in with data-pan.
     for (const g of document.querySelectorAll("[data-pan]")) {
       g.style.backgroundPosition = (50 + 22 * Math.sin(it * 0.18)).toFixed(2) + "% "

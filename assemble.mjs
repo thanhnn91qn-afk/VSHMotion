@@ -84,7 +84,10 @@ export async function assemble({ scenes, fps, gap, exec, root, name, outDir, bas
     const vArgs = ["-y", "-hide_banner", "-loglevel", "error"];
     const f = [];
     scenes.forEach((s, i) => {
-      vArgs.push("-i", s.clip);
+      // One decoder thread per input: 14 portrait clips each decoding on every
+      // core ran this machine out of memory (ffmpeg error -12). Only two inputs
+      // are ever being decoded at once, so it costs no speed worth measuring.
+      vArgs.push("-threads", "1", "-i", s.clip);
       // xfade needs identical timebase and frame rate on both inputs.
       f.push(`[${i}:v]fps=${fps},settb=AVTB,format=yuv420p[s${i}]`);
     });
@@ -101,7 +104,7 @@ export async function assemble({ scenes, fps, gap, exec, root, name, outDir, bas
       }
       cur = out;
     }
-    vArgs.push("-filter_complex", f.join(";"), "-map", cur,
+    vArgs.push("-filter_complex_threads", "1", "-filter_complex", f.join(";"), "-map", cur,
       "-c:v", "libx264", "-preset", "veryfast", "-crf", "20", "-pix_fmt", "yuv420p",
       "-r", String(fps), "-movflags", "+faststart", silent);
     await exec("ffmpeg", vArgs, { maxBuffer: 1 << 24 });

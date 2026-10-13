@@ -576,6 +576,23 @@ ffprobe -v error -show_entries format=duration \
 ffmpeg -ss 45 -i out/video-abc.mp4 -frames:v 1 build/kiem-tra.png -y
 ```
 
+### Đo tự động: `tools/look.py`
+
+Lấy từ motionmaxxing (Apache-2.0). Chỉ cần Python + ffmpeg:
+
+```bash
+python tools/look.py out/video-abc.mp4 --out build/look --expect 88.9 --expect-audio
+```
+
+In ra các cổng **G0** (file đọc được, không đen, đúng thời lượng, có tiếng), **G2** (không
+có quá 3 khung trống liền nhau), **G3** (cảnh kết đứng yên không quá 1,4 giây), cùng độ to
+LUFS và đỉnh, và danh sách **các đoạn hình đứng yên** (`still`). Ảnh tổng hợp nằm ở
+`build/look/sheet.jpg`. Lần chạy đầu tiên, công cụ này đã bắt được cảnh poster và cảnh logo
+kết đứng im 4–6 giây; giờ hai cảnh đó đã được đẩy chậm vào suốt cảnh.
+
+Dòng `MOTION` so với phim quảng cáo sản phẩm (trung vị 6,8), nên clip y tế đọc chậm thấp
+hơn là bình thường. Coi đó là câu hỏi để soát, không phải lỗi.
+
 Danh sách tự kiểm:
 
 - [ ] Đủ số cảnh, thời lượng hợp lý (clip dự thi: dưới mức trần của thể lệ)

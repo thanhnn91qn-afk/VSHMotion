@@ -1,4 +1,4 @@
-# bvtd-video
+# VSHMotion
 
 Dựng video tuyên truyền cho **Bệnh viện Việt Nam – Thụy Điển Uông Bí** từ một file JSON
 kịch bản. Lời đọc do máy chủ TTS tiếng Việt trong mạng nội bộ sinh ra; hình ảnh động

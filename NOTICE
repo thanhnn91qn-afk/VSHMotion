@@ -1,4 +1,4 @@
-bvtd-video
+VSHMotion
 Bo dung video tuyen truyen cho Benh vien Viet Nam - Thuy Dien Uong Bi.
 
 Phan mem nay co dung hoac chuyen the tu cac du an ben thu ba sau:
@@ -22,6 +22,12 @@ Health Icons - https://github.com/resolvetosavelives/healthicons
 Be Vietnam Pro - https://github.com/bettergui/BeVietnamPro
   Giay phep: SIL Open Font License 1.1
   Dung nguyen ban qua npm (@fontsource/be-vietnam-pro).
+
+motionmaxxing - https://github.com/Tejashmakwana/motionmaxxing
+  Giay phep: Apache License 2.0
+  tools/look.py lay nguyen ban (them duong dan font Windows). Chuyen dong nen
+  cho canh poster va canh logo ket them sau khi look.py do ra cac doan hinh
+  dung yen.
 
 Tieng hieu ung trong assets/sfx/ - lay tu bo media-use cua HyperFrames
   Nguon goc: Pixabay (https://pixabay.com/sound-effects/)
