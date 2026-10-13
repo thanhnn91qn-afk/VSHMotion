@@ -5,8 +5,13 @@
   "type": "module",
   "description": "Dựng video tuyên truyền cho Bệnh viện Việt Nam - Thụy Điển Uông Bí từ kịch bản JSON",
   "scripts": {
+    "build:9x16": "node build-styles.mjs",
+    "build:16x9": "node build-16x9.mjs",
     "stills:16x9": "node build-16x9.mjs --stills",
-    "stills:9x16": "node build-styles.mjs --stills"
+    "stills:9x16": "node build-styles.mjs --stills",
+    "look": "python tools/look.py",
+    "test": "node tools/test-art-keywords.mjs && node tools/test-scenes.mjs",
+    "skill:install": "node -e \"require('fs').cpSync('.claude/skills/vshmotion', require('os').homedir() + '/.claude/skills/vshmotion', {recursive: true})\""
   },
   "dependencies": {
     "@fontsource/be-vietnam-pro": "^5.3.0",

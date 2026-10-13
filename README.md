@@ -6,6 +6,10 @@ là HTML/CSS/SVG do Chrome vẽ rồi ffmpeg ghép lại. Không cần phần m�
 
 📖 **[HUONG-DAN-TAO-VIDEO.md](HUONG-DAN-TAO-VIDEO.md) — đọc file này trước.**
 
+🤖 **Dùng với Claude Code:** repo có sẵn skill `.claude/skills/vshmotion/` — quy trình và các
+quy tắc nội dung (ảnh chỉ của bệnh viện, che thông tin người bệnh, "test" chỉ dựng 1 clip…).
+Mở Claude trong repo là skill tự có; muốn dùng ở thư mục khác thì `npm run skill:install`.
+
 ## Chạy nhanh
 
 ```bash
@@ -26,19 +30,21 @@ Khổ dọc 1080×1920 dùng `build-styles.mjs` với cùng bộ tham số.
 
 | Đường dẫn | Là gì |
 |---|---|
-| `build-16x9.mjs` | Bộ dựng ngang 1920×1080 — 13 kiểu cảnh |
-| `build-styles.mjs` | Bộ dựng dọc 1080×1920 — 13 kiểu cảnh |
+| `build-16x9.mjs` | Khổ ngang 1920×1080 — bộ máy hiệu ứng và 13 kiểu cảnh |
+| `build-styles.mjs` | Khổ dọc 1080×1920 — bộ máy hiệu ứng và 13 kiểu cảnh |
+| `pipeline.mjs` | Phần chung của hai khổ: lời đọc, chụp từng khung, nối, trộn tiếng |
 | `director.mjs` | **Bộ đạo diễn**: tự chọn kiểu cảnh, hình vẽ, chuyển cảnh cho chỗ kịch bản để trống |
 | `motion.mjs` | Biểu đồ, vòng số đếm (GSAP, chuyển thể từ HyperFrames), hiệu ứng chữ |
 | `assemble.mjs` | Nối cảnh có chuyển cảnh, cắt lời đọc cho khớp, trộn nhạc nền có ducking |
 | `art.mjs` | 38 hình vẽ nét SVG tự vẽ dần + 748 icon y tế nhập sẵn |
 | `scene-check.mjs` | Kiểm tra kịch bản trước khi dựng |
+| `wordsync.mjs` | Cho dòng chữ / cột biểu đồ hiện đúng lúc lời đọc nhắc tới |
+| `tools/look.py` | Đo video đã dựng: đứng hình, khung trống, độ to (từ motionmaxxing) |
 | `tools/make-music.py` | Sinh nhạc nền (Python + numpy), 4 tâm trạng, lặp liền mạch |
 | `assets/sfx/` | 6 tiếng hiệu ứng (Pixabay) kèm bảng cân mức `sfx.json` |
-| `scenes-*.json` | Kịch bản từng clip |
+| `scenes/` | Kịch bản từng clip (`--scenes=` tự tìm trong thư mục này) |
 | `assets/photos/` | Ảnh dùng trong clip |
 | `assets/logo.png` | Logo bệnh viện |
-| `build.mjs`, `build-animated.mjs` | Hai bản dựng đời đầu, giữ lại để tham khảo |
 
 ## Cần có trên máy
 
@@ -46,7 +52,13 @@ Node 18+ · Google Chrome · ffmpeg · một máy chủ TTS nhận `POST /tts {t
 
 Tuỳ chọn: Python 3 + numpy để tự sinh nhạc nền (thiếu thì clip vẫn dựng, chỉ không có nhạc).
 
-Ba đường dẫn phụ thuộc máy nằm ở đầu hai file `build-*.mjs` — sửa cho khớp trước khi chạy.
+Đường dẫn phụ thuộc máy đặt bằng biến môi trường, không phải sửa code: `CHROME_PATH`
+(tự dò ở chỗ cài mặc định), `FFMPEG_BIN` (thư mục chứa ffmpeg nếu chưa có trong PATH),
+`TTS_ENDPOINT` (mặc định `http://192.168.1.71:8000`), `PYTHON`.
+
+```bash
+npm test          # soát lại toàn bộ kịch bản và bảng từ khoá hình vẽ, ~1 giây
+```
 
 ## Lưu ý khi làm nội dung y tế
 

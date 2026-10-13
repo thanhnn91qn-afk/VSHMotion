@@ -8,7 +8,7 @@ phần mềm dựng phim. Toàn bộ hình ảnh động là HTML/CSS/SVG do tr�
 ## 1. Cách hoạt động (đọc 1 phút là đủ)
 
 ```
-scenes-*.json  ──►  TTS (máy chủ LAN)  ──►  file WAV mỗi cảnh  ──►  đo độ dài thật
+scenes/*.json  ──►  TTS (máy chủ LAN)  ──►  file WAV mỗi cảnh  ──►  đo độ dài thật
                                                                           │
                                                                           ▼
                                             mỗi cảnh = 1 trang HTML tự vẽ
@@ -69,7 +69,7 @@ dùng lại tên cũ thì bản 16:9 sẽ ăn phải các cảnh 1080×1920 đã
 
 ### Quy trình chuẩn — đừng bỏ bước
 
-1. Viết `scenes-*.json`.
+1. Viết `scenes/scenes-*.json`.
 2. Chạy `--stills` (~40 giây) → **mở ảnh ra xem** bố cục, chữ có tràn không, ảnh có đúng nội dung không.
 3. Sửa, chạy lại `--stills` cho tới khi ưng.
 4. Bỏ `--stills`, dựng đủ (~3–6 phút).
@@ -550,18 +550,12 @@ trống, kiểu `lines` mà thiếu mảng `lines`, tên hình vẽ hoặc tên 
 **Chỉ nhắc (cảnh báo):** `voice` còn sót chữ số, hình vẽ bị lặp, có `stat` mà thiếu
 `statLabel`, tiêu đề quá dài dễ tràn khung.
 
-Chạy riêng cho một file bất kỳ:
+Soát **toàn bộ** kịch bản trong `scenes/` (qua bộ đạo diễn rồi bộ kiểm tra), mất khoảng 1 giây.
+Nên chạy sau mỗi lần sửa `director.mjs`, `art.mjs` hay `scene-check.mjs`:
 
 ```bash
-node -e "import('./scene-check.mjs').then(async m=>{const {readFileSync}=await import('fs');
-const r=m.checkScenes(JSON.parse(readFileSync('scenes-abc.json','utf8')),
-{styles:['cinematic','split','glass','caption','wipe','card','shot','lines','kinetic','plain','logo'],root:'.'});
-console.log(r)})"
+npm test
 ```
-
-> Hai file `scenes.json` và `scenes-khoakham.json` không có trường `style` — chúng
-> thuộc hai bộ dựng đời đầu (`build.mjs`, `build-animated.mjs`) không dùng kiểu cảnh.
-> Đừng "sửa" chúng theo báo lỗi của bộ kiểm tra này.
 
 ---
 
@@ -637,13 +631,14 @@ Cần: **Node 18+**, **Google Chrome**, **ffmpeg**, và một **máy chủ TTS t
 npm install
 ```
 
-Sửa ba đường dẫn ở đầu `build-16x9.mjs` và `build-styles.mjs` cho khớp máy mới:
+Không cần sửa code: đường dẫn phụ thuộc máy đặt bằng biến môi trường (`pipeline.mjs` đọc):
 
-```js
-const TTS_ENDPOINT = process.env.TTS_ENDPOINT ?? "http://192.168.1.71:8000";
-const CHROME = "C:/Program Files/Google/Chrome/Application/chrome.exe";
-const FFMPEG_BIN = "...";   // thư mục chứa ffmpeg.exe
-```
+| Biến | Mặc định |
+|---|---|
+| `TTS_ENDPOINT` | `http://192.168.1.71:8000` |
+| `CHROME_PATH` | tự dò Chrome ở chỗ cài mặc định (Windows, Linux, macOS) |
+| `FFMPEG_BIN` | thư mục ffmpeg cài qua winget trên máy gốc; bỏ qua nếu không có, khi đó dùng ffmpeg trong PATH |
+| `PYTHON` | `python` (để sinh nhạc nền) |
 
 Máy chủ TTS chỉ cần nhận `POST /tts` với JSON `{ "text": "..." }` và trả về dữ liệu WAV.
 
